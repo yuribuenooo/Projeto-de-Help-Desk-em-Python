@@ -1,0 +1,6 @@
+{% for e in form.non_field_errors %}<p class="msg erro" role="alert">{{ e }}</p>{% endfor %}
+{% for f in form %}
+  {{ f.label_tag }}{{ f }}
+  {% if f.help_text %}<small>{{ f.help_text|safe }}</small>{% endif %}
+  {% for e in f.errors %}<p class="msg erro" role="alert">{{ e }}</p>{% endfor %}
+{% endfor %}

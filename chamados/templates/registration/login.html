@@ -1,0 +1,10 @@
+{% extends 'chamados/base.html' %}
+{% block conteudo %}
+<form method="post" class="form">
+  {% csrf_token %}
+  {% include 'chamados/_form.html' %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button>Entrar</button>
+</form>
+<p>Ainda não tem conta? <a href="{% url 'cadastro' %}">Criar conta</a></p>
+{% endblock %}

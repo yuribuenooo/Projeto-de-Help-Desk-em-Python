@@ -1,0 +1,8 @@
+{% extends 'chamados/base.html' %}
+{% block conteudo %}
+<form method="post" class="form">
+  {% csrf_token %}
+  {% include 'chamados/_form.html' %}
+  <button>Criar conta</button>
+</form>
+{% endblock %}

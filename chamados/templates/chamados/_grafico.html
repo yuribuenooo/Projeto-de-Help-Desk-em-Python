@@ -1,0 +1,8 @@
+<table class="grafico">
+  <caption>{{ titulo_g }}</caption>
+  <thead><tr><th scope="col">Item</th><th scope="col">Total</th><th scope="col"><span class="sr">Proporção</span></th></tr></thead>
+  <tbody>
+  {% for x in dados %}<tr><th scope="row">{{ x.nome }}</th><td>{{ x.total }}</td><td class="barra-cel"><div class="barra" style="--w:{{ x.pct }}%" aria-hidden="true"></div></td></tr>
+  {% empty %}<tr><td colspan="3">Sem dados.</td></tr>{% endfor %}
+  </tbody>
+</table>

@@ -1,0 +1,51 @@
+{% extends 'chamados/base.html' %}
+{% block conteudo %}
+<section aria-labelledby="kpi">
+  <h2 id="kpi">Indicadores{% if user.is_staff %} (todos os chamados){% else %} (seus chamados){% endif %}</h2>
+  <dl class="cards">
+    <div><dt>Total</dt><dd data-k="total">{{ resumo.total }}</dd></div>
+    <div><dt>Abertos</dt><dd data-k="abertos">{{ resumo.abertos }}</dd></div>
+    <div><dt>Em andamento</dt><dd data-k="em_andamento">{{ resumo.em_andamento }}</dd></div>
+    <div><dt>Pendentes</dt><dd data-k="pendentes">{{ resumo.pendentes }}</dd></div>
+    <div><dt>Resolvidos</dt><dd data-k="resolvidos">{{ resumo.resolvidos }}</dd></div>
+    <div><dt>Atrasados</dt><dd data-k="atrasados">{{ resumo.atrasados }}</dd></div>
+    <div><dt>Tempo médio (h)</dt><dd data-k="media_horas">{{ resumo.media_horas }}</dd></div>
+    <div><dt>Resolvidos no prazo</dt><dd data-k="pct_no_prazo" data-suf="%">{% if resumo.pct_no_prazo is None %}—{% else %}{{ resumo.pct_no_prazo }}%{% endif %}</dd></div>
+  </dl>
+  <button type="button" id="atualizar">Atualizar indicadores</button>
+  <p id="status-atualizacao" role="status" aria-live="polite"></p>
+  <p><small>Prazo (SLA) por prioridade: urgente 4 h · alta 8 h · média 24 h · baixa 72 h.</small></p>
+</section>
+<section aria-labelledby="graf">
+  <h2 id="graf">Gráficos</h2>
+  <div class="linha">
+    {% include 'chamados/_grafico.html' with titulo_g='Chamados por status' dados=resumo.por_status %}
+    {% include 'chamados/_grafico.html' with titulo_g='Chamados por prioridade' dados=resumo.por_prioridade %}
+    {% include 'chamados/_grafico.html' with titulo_g='Chamados por setor' dados=resumo.por_setor %}
+    {% include 'chamados/_grafico.html' with titulo_g='Chamados por categoria' dados=resumo.por_categoria %}
+    <table class="grafico">
+      <caption>Chamados por mês (abertos × resolvidos)</caption>
+      <thead><tr><th scope="col">Mês</th><th scope="col">Abertos</th><th scope="col">Resolvidos</th><th scope="col"><span class="sr">Proporção de abertos</span></th></tr></thead>
+      <tbody>
+      {% for x in resumo.por_mes %}<tr><th scope="row">{{ x.nome }}</th><td>{{ x.total }}</td><td>{{ x.resolvidos }}</td><td class="barra-cel"><div class="barra" style="--w:{{ x.pct }}%" aria-hidden="true"></div></td></tr>
+      {% empty %}<tr><td colspan="4">Sem dados.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    {% if user.is_staff %}
+    <table class="grafico"><caption>Por técnico</caption><thead><tr><th scope="col">Técnico</th><th scope="col">Em aberto</th><th scope="col">Resolvidos</th></tr></thead><tbody>
+      {% for x in resumo.por_tecnico %}<tr><th scope="row">{{ x.usuario }}</th><td>{{ x.em_aberto }}</td><td>{{ x.resolvidos }}</td></tr>{% empty %}<tr><td colspan="3">Sem dados.</td></tr>{% endfor %}</tbody></table>
+    {% endif %}
+  </div>
+</section>
+<section aria-labelledby="rec">
+  <h2 id="rec">Chamados recentes</h2>
+  <table>
+    <caption class="sr">Cinco chamados mais recentes</caption>
+    <thead><tr><th scope="col">Chamado</th><th scope="col">Status</th><th scope="col">Prioridade</th><th scope="col">Solicitante</th></tr></thead>
+    <tbody>
+    {% for c in recentes %}<tr><th scope="row"><a href="{% url 'chamado' c.pk %}">#{{ c.pk }} {{ c.titulo }}</a></th><td>{{ c.get_status_display }}</td><td>{{ c.get_prioridade_display }}</td><td>{{ c.solicitante.get_username }}</td></tr>
+    {% empty %}<tr><td colspan="4">Nenhum chamado ainda.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

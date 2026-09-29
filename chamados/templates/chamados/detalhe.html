@@ -1,0 +1,74 @@
+{% extends 'chamados/base.html' %}
+{% block conteudo %}
+<h2>{{ c.titulo }}</h2>
+<p><span class="badge">Status: {{ c.get_status_display }}</span> <span class="badge">Prioridade: {{ c.get_prioridade_display }}</span> <span class="badge">{{ c.get_categoria_display }}</span> <span class="badge">Setor: {{ c.setor.nome }}</span></p>
+<dl>
+  <dt>Solicitante</dt><dd>{{ c.solicitante.get_username }}</dd>
+  <dt>Responsável</dt><dd>{{ c.responsavel.get_username|default:"Ainda não atribuído" }}</dd>
+  <dt>Aberto em</dt><dd>{{ c.criado_em|date:"d/m/Y H:i" }}</dd>
+  <dt>Prazo (SLA)</dt><dd>{{ c.prazo_limite|date:"d/m/Y H:i" }}{% if c.atrasado %} <strong>(atrasado)</strong>{% endif %}{% if c.resolvido_em %} — {% if c.no_prazo %}resolvido no prazo{% else %}resolvido fora do prazo{% endif %}{% endif %}</dd>
+  {% if c.resolvido_em %}<dt>Resolvido em</dt><dd>{{ c.resolvido_em|date:"d/m/Y H:i" }}</dd>{% endif %}
+</dl>
+<h3>Descrição</h3>
+<p>{{ c.descricao|linebreaksbr }}</p>
+{% if c.solucao %}<h3>Solução aplicada</h3><p>{{ c.solucao|linebreaksbr }}</p>{% endif %}
+<h3>Anexos</h3>
+<ul>{% for a in anexos %}<li><a href="{% url 'anexo' a.pk %}">{{ a.nome }}</a> (enviado por {{ a.enviado_por.get_username }} em {{ a.criado_em|date:"d/m/Y H:i" }})</li>{% empty %}<li>Nenhum anexo.</li>{% endfor %}</ul>
+
+<section aria-labelledby="acoes">
+  <h3 id="acoes">Ações</h3>
+  <div class="linha">
+  {% if user.is_staff and not c.encerrado %}
+    <form method="post" action="{% url 'acao' c.pk 'assumir' %}">{% csrf_token %}<button>{% if c.responsavel == user %}Continuar atendimento{% else %}Assumir chamado{% endif %}</button></form>
+  {% endif %}
+  {% if c.status == 'resolvido' %}
+    <form method="post" action="{% url 'acao' c.pk 'fechar' %}">{% csrf_token %}<button>Confirmar solução e fechar</button></form>
+  {% endif %}
+  {% if c.encerrado %}
+    <form method="post" action="{% url 'acao' c.pk 'reabrir' %}">{% csrf_token %}<button>Reabrir chamado</button></form>
+  {% endif %}
+  </div>
+  {% if user.is_staff and not c.encerrado %}
+  <h4>Gerenciar atendimento</h4>
+  <p><small>“Pendente” indica que o atendimento aguarda resposta do solicitante.</small></p>
+  <div class="linha">
+    <form method="post" action="{% url 'acao' c.pk 'status' %}" class="form">{% csrf_token %}
+      <label for="st">Status</label>
+      <select id="st" name="status">{% for v, l in status_manuais %}<option value="{{ v }}"{% if v == c.status %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+      <button>Alterar status</button></form>
+    <form method="post" action="{% url 'acao' c.pk 'prioridade' %}" class="form">{% csrf_token %}
+      <label for="pr">Prioridade</label>
+      <select id="pr" name="prioridade">{% for v, l in prioridades %}<option value="{{ v }}"{% if v == c.prioridade %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+      <button>Alterar prioridade</button></form>
+    <form method="post" action="{% url 'acao' c.pk 'encaminhar' %}" class="form">{% csrf_token %}
+      <label for="se">Encaminhar para o setor</label>
+      <select id="se" name="setor">{% for s in setores %}<option value="{{ s.pk }}"{% if s.pk == c.setor_id %} selected{% endif %}>{{ s.nome }}</option>{% endfor %}</select>
+      <button>Encaminhar</button></form>
+  </div>
+  <form method="post" action="{% url 'acao' c.pk 'resolver' %}" class="form">
+    {% csrf_token %}
+    <label for="solucao">Solução aplicada (finaliza o chamado)</label>
+    <textarea id="solucao" name="solucao" required></textarea>
+    <button>Marcar como resolvido</button>
+  </form>
+  {% endif %}
+</section>
+
+<section aria-labelledby="hist">
+  <h3 id="hist">Histórico e respostas</h3>
+  {% for m in comentarios %}
+    <div class="coment{% if m.sistema %} sistema{% endif %}">
+      <p><strong>{{ m.autor.get_username }}</strong> · <time datetime="{{ m.criado_em|date:'c' }}">{{ m.criado_em|date:"d/m/Y H:i" }}</time></p>
+      <p>{{ m.texto|linebreaksbr }}</p>
+    </div>
+  {% empty %}<p>Sem comentários.</p>{% endfor %}
+  {% if c.status != 'fechado' %}
+  <form method="post" enctype="multipart/form-data" class="form">
+    {% csrf_token %}
+    <h4>Responder</h4>
+    {% include 'chamados/_form.html' %}
+    <button>Enviar resposta</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

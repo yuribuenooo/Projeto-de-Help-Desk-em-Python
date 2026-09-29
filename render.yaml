@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: helpdesk-django
+    runtime: docker
+    plan: free
+    envVars:
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
