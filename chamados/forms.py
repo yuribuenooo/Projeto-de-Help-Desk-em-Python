@@ -39,6 +39,10 @@ class ChamadoForm(forms.ModelForm):
         model = Chamado
         fields = ['titulo', 'descricao', 'categoria', 'setor', 'prioridade']
 
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.fields['setor'].empty_label = 'Selecione o setor'
+
 
 class ComentarioForm(forms.ModelForm):
     arquivo = campo_arquivo()
