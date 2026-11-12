@@ -3,5 +3,13 @@ __pycache__/
 .venv/
 db.sqlite3
 staticfiles/
-.env
 media/
+.env
+.env.*
+!.env.example
+*.log
+backups/
+*.pem
+*.key
+.idea/
+.vscode/
