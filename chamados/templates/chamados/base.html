@@ -8,7 +8,10 @@
 <body>
 <a class="skip" href="#main">Ir para o conteúdo principal</a>
 <header>
-  <p class="marca">Help Desk</p>
+  <div class="identidade">
+    <img class="brasao" src="{% static 'chamados/images/brasao-300x284.png' %}" alt="Brasão do Município de Itapeva" width="56" height="53">
+    <p class="marca">Help Desk</p>
+  </div>
   <nav aria-label="Principal">
     {% with n=request.resolver_match.url_name %}
     {% if user.is_authenticated %}
