@@ -8,11 +8,12 @@ Django + templates + SQLite, API REST (JSON), JavaScript, acessibilidade, testes
     .venv\Scripts\Activate.ps1
     pip install -r requirements.txt
     python manage.py migrate
-    python manage.py criar_demo      # usuários e chamados de exemplo (só em DEBUG)
+    python manage.py criar_demo      # cria/atualiza exemplos (só em DEBUG; pode repetir)
     python manage.py runserver       # http://127.0.0.1:8000
     python manage.py test            # testes
 
 Usuários de demonstração: `tecnico` (técnico) e `cliente` (solicitante), ambos com a senha `Senha@12345`.
+Ao repetir `criar_demo`, os chamados de exemplo são sincronizados com os dados definidos no projeto; chamados comuns não são alterados.
 Para criar um técnico real: `python manage.py createsuperuser` e acesse `/admin/` (marque "Membro da equipe" nos técnicos).
 
 ## Perfis

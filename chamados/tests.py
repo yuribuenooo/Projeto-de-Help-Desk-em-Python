@@ -5,13 +5,64 @@ import tempfile
 from datetime import timedelta
 
 from django.contrib.auth.models import User
+from django.core.management import call_command, CommandError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from .management.commands.criar_demo import DESCRICAO_DEMO, EXEMPLOS
 from .models import Anexo, Chamado, Setor
 
 SENHA = 'Senha@12345'
+
+
+class CriarDemoTests(TestCase):
+    @override_settings(DEBUG=True)
+    def test_sincroniza_exemplos_sem_alterar_chamados_reais(self):
+        call_command('criar_demo', verbosity=0)
+        cliente = User.objects.get(username='cliente')
+        titulo, _, prioridade, _, status, _ = EXEMPLOS[0]
+        chamado = Chamado.objects.get(
+            solicitante=cliente,
+            titulo=titulo,
+            descricao=DESCRICAO_DEMO,
+        )
+        chamado.status = Chamado.ABERTO
+        chamado.save(update_fields=['status'])
+
+        chamado_real = Chamado.objects.create(
+            titulo='Chamado real',
+            descricao='Não deve ser alterado.',
+            solicitante=cliente,
+            setor=Setor.objects.first(),
+        )
+        Chamado.objects.create(
+            titulo='Exemplo removido',
+            descricao=DESCRICAO_DEMO,
+            solicitante=cliente,
+            setor=Setor.objects.first(),
+        )
+
+        call_command('criar_demo', verbosity=0)
+
+        chamado.refresh_from_db()
+        self.assertEqual((chamado.prioridade, chamado.status), (prioridade, status))
+        self.assertTrue(Chamado.objects.filter(pk=chamado_real.pk).exists())
+        self.assertFalse(Chamado.objects.filter(titulo='Exemplo removido').exists())
+        self.assertEqual(
+            Chamado.objects.filter(
+                solicitante=cliente,
+                descricao=DESCRICAO_DEMO,
+            ).count(),
+            len(EXEMPLOS),
+        )
+
+    @override_settings(DEBUG=False)
+    def test_nao_permite_criar_demo_fora_de_debug(self):
+        with self.assertRaises(CommandError):
+            call_command('criar_demo', verbosity=0)
+
+        self.assertFalse(User.objects.filter(username='cliente').exists())
 
 
 class HelpDeskTests(TestCase):
@@ -577,11 +628,23 @@ class HelpDeskTests(TestCase):
                 f'/chamados/{self.c1.pk}/',
                 f'/chamados/?setor={self.ti.pk}&status=resolvido'
             ):
+                resposta = self.client.get(rota)
                 self.assertEqual(
-                    self.client.get(rota).status_code,
+                    resposta.status_code,
                     200,
                     rota
                 )
+                self.assertContains(
+                    resposta,
+                    'alt="Brasão do Município de Itapeva"',
+                    msg_prefix=rota,
+                )
+
+    def test_brasao_aparece_na_tela_de_login(self):
+        self.assertContains(
+            self.client.get('/login/'),
+            'alt="Brasão do Município de Itapeva"',
+        )
 
     def test_api_cria_e_lista_chamados(self):
         self.entrar(self.ana)

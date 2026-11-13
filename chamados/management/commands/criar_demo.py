@@ -3,9 +3,12 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 from django.utils import timezone
 
 from chamados.models import Chamado, Setor
+
+DESCRICAO_DEMO = 'Chamado de demonstração.'
 
 EXEMPLOS = [  # título, categoria, prioridade, dias atrás, status, horas até resolver
     ('Computador não liga', 'hardware', 'alta', 75, 'fechado', 5),
@@ -20,29 +23,66 @@ EXEMPLOS = [  # título, categoria, prioridade, dias atrás, status, horas até 
 
 
 class Command(BaseCommand):
-    help = 'Cria usuários e chamados de demonstração (somente com DEBUG=true).'
+    help = 'Cria ou sincroniza usuários e chamados de demonstração (somente com DEBUG=true).'
 
     def handle(self, *args, **opts):
         if not settings.DEBUG:
             raise CommandError('Comando permitido apenas em desenvolvimento.')
-        U = get_user_model()
-        for nome, staff in (('tecnico', True), ('cliente', False)):
-            u, novo = U.objects.get_or_create(username=nome, defaults={'is_staff': staff})
-            if novo:
-                u.set_password('Senha@12345')
-                u.save()
-            self.stdout.write(f'{nome} / Senha@12345 ({"técnico" if staff else "solicitante"})')
-        if Chamado.objects.exists():
-            return
-        tec, cli, setores = U.objects.get(username='tecnico'), U.objects.get(username='cliente'), list(Setor.objects.all())
-        for i, (t, cat, pri, dias, st, h) in enumerate(EXEMPLOS):
-            ini = timezone.now() - timedelta(days=dias)
-            c = Chamado.objects.create(titulo=t, descricao='Chamado de demonstração.', categoria=cat, prioridade=pri,
-                                       setor=setores[i % len(setores)], solicitante=cli)
-            c.criado_em, c.status = ini, st
-            if st != 'aberto':
-                c.responsavel = tec
-            if st in ('resolvido', 'fechado'):
-                c.resolvido_em, c.solucao = ini + timedelta(hours=h), 'Solução aplicada (demonstração).'
-            c.save()
-        self.stdout.write(f'{len(EXEMPLOS)} chamados de exemplo criados.')
+        User = get_user_model()
+        setores = list(Setor.objects.all())
+        if not setores:
+            raise CommandError('Nenhum setor cadastrado. Execute "python manage.py migrate" primeiro.')
+
+        with transaction.atomic():
+            for nome, staff in (('tecnico', True), ('cliente', False)):
+                usuario, novo = User.objects.get_or_create(
+                    username=nome,
+                    defaults={'is_staff': staff},
+                )
+                if novo:
+                    usuario.set_password('Senha@12345')
+                    usuario.save()
+                elif usuario.is_staff != staff:
+                    usuario.is_staff = staff
+                    usuario.save(update_fields=['is_staff'])
+                self.stdout.write(
+                    f'{nome} / Senha@12345 ({"técnico" if staff else "solicitante"})'
+                )
+
+            tecnico = User.objects.get(username='tecnico')
+            cliente = User.objects.get(username='cliente')
+            titulos = [exemplo[0] for exemplo in EXEMPLOS]
+
+            for i, (titulo, categoria, prioridade, dias, status, horas) in enumerate(EXEMPLOS):
+                inicio = timezone.now() - timedelta(days=dias)
+                resolvido_em = (
+                    inicio + timedelta(hours=horas)
+                    if status in ('resolvido', 'fechado')
+                    else None
+                )
+                chamado, _ = Chamado.objects.update_or_create(
+                    titulo=titulo,
+                    descricao=DESCRICAO_DEMO,
+                    solicitante=cliente,
+                    defaults={
+                        'categoria': categoria,
+                        'prioridade': prioridade,
+                        'setor': setores[i % len(setores)],
+                        'status': status,
+                        'responsavel': tecnico if status != 'aberto' else None,
+                        'solucao': (
+                            'Solução aplicada (demonstração).'
+                            if resolvido_em
+                            else ''
+                        ),
+                        'resolvido_em': resolvido_em,
+                    },
+                )
+                Chamado.objects.filter(pk=chamado.pk).update(criado_em=inicio)
+
+            Chamado.objects.filter(
+                solicitante=cliente,
+                descricao=DESCRICAO_DEMO,
+            ).exclude(titulo__in=titulos).delete()
+
+        self.stdout.write(f'Demonstração sincronizada: {len(EXEMPLOS)} chamados de exemplo.')

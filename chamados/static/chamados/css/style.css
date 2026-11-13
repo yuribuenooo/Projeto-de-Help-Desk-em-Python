@@ -3,7 +3,9 @@
 *{box-sizing:border-box}
 body{margin:0;font:1rem/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
 header{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:2px solid var(--line)}
-.marca{font-weight:700;margin:0}nav{display:flex;gap:1rem}
+.identidade{display:flex;align-items:center;gap:.75rem}
+.brasao{display:block;width:3.5rem;height:3.35rem;object-fit:contain;flex:0 0 auto}
+.marca{font-weight:700;margin:0}nav{display:flex;flex-wrap:wrap;gap:1rem;align-items:center}
 a{color:var(--brand)}a[aria-current=page]{font-weight:700;text-decoration:none}
 main{max-width:60rem;margin:0 auto;padding:1.5rem}
 :focus-visible{outline:3px solid var(--brand);outline-offset:2px}
@@ -32,3 +34,18 @@ nav button{background:none;color:var(--brand);border:0;text-decoration:underline
 .barra-cel{width:45%}
 .barra{height:.9rem;width:var(--w);min-width:2px;background:var(--brand);border-radius:3px}
 small{opacity:.85}
+@media(max-width:640px){
+  header{align-items:stretch;padding:.75rem 1rem}
+  .identidade{justify-content:center}
+  nav{justify-content:center;gap:.75rem;width:100%}
+  main{padding:1rem}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}
+  .cards div{padding:.75rem}
+  .linha>table,.linha>.form{flex-basis:100%;min-width:0}
+  .form{max-width:none}
+  table{display:block;max-width:100%;overflow-x:auto}
+  input,select,button{max-width:100%}
+}
+@media(max-width:360px){
+  .cards{grid-template-columns:1fr}
+}
