@@ -12,7 +12,7 @@ CSRF_TRUSTED_ORIGINS = [f'https://{_host}'] if _host else []
 INSTALLED_APPS = [
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.sessions', 'django.contrib.messages', 'django.contrib.staticfiles',
-    'chamados', 'axes', 'ratelimit',
+    'chamados', 'axes',
 ]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

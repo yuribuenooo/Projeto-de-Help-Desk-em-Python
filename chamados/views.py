@@ -1,5 +1,6 @@
 
 """CONTROLLER (no Django chamado de "view"): regras de acesso, uso do Model/Form e escolha do Template."""
+
 import os
 
 from django.contrib import messages
@@ -49,7 +50,14 @@ def cadastro(request):
     form = CadastroForm(request.POST or None)
 
     if request.method == 'POST' and form.is_valid():
-        login(request, form.save())
+        usuario = form.save()
+
+        login(
+            request,
+            usuario,
+            backend='django.contrib.auth.backends.ModelBackend'
+        )
+
         messages.success(request, 'Conta criada. Bem-vindo(a)!')
         return redirect('painel')
 
