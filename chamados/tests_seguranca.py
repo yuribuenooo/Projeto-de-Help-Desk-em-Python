@@ -1,6 +1,7 @@
 
 from django.contrib.auth.models import User
 from django.test import TestCase
+from chamados.models import Chamado, Setor
 
 
 class HashSenhaTest(TestCase):
@@ -56,3 +57,28 @@ class RateLimitTest(TestCase):
         ]
 
         self.assertEqual(codigos[-1], 429)
+
+
+class SqlInjectionTest(TestCase):
+    PAYLOADS = ["' OR '1'='1", "'; DROP TABLE chamados_chamado; --", '1 OR 1=1',
+                "%' UNION SELECT username, password FROM auth_user --"]
+
+    def setUp(self):
+        self.a = User.objects.create_user('sqla', password='Teste#Segura2026!')
+        b = User.objects.create_user('sqlb', password='Teste#Segura2026!')
+        Chamado.objects.create(titulo='Segredo do B', descricao='confidencial' * 3,
+                               setor=Setor.objects.first(), solicitante=b)
+        self.client.force_login(self.a)
+
+    def test_filtros_nao_vazam_nem_quebram(self):
+        for payload in self.PAYLOADS:
+            for parametro in ('q', 'status', 'setor'):
+                r = self.client.get('/chamados/', {parametro: payload})
+                self.assertEqual(r.status_code, 200)           
+                self.assertNotContains(r, 'Segredo do B')      
+        self.assertEqual(Chamado.objects.count(), 1)           
+
+    def test_login_com_payload(self):
+        r = self.client_class().post('/login/', {'username': "admin' --", 'password': "x' OR '1'='1"})
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn('_auth_user_id', r.wsgi_request.session)   
