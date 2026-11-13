@@ -42,6 +42,9 @@ Abertos, em andamento, pendentes, resolvidos, atrasados, tempo médio de atendim
 
 ## Segurança
 Senhas com hash e validadores do Django, CSRF nos formulários, cada usuário só acessa seus chamados/anexos, ações de técnico exigem `is_staff`.
+• Proibido: .raw(), .extra(), RawSQL, connection.cursor().execute(...) com f-string, % ou .format() contendo dados externos.
+• Se um SQL manual for inevitável, use parâmetros: cursor.execute('SELECT ... WHERE id = %s', [valor]) — nunca f'... {valor}'.
+• Todo parâmetro de URL/GET/POST que vira filtro deve ser validado ou convertido (int(), lista de opções permitidas) antes da consulta, como já é feito em status e setor.
 
 ## Git
     git init -b main && git add . && git commit -m "feat: versão inicial"
